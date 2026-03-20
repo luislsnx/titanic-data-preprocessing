@@ -38,11 +38,13 @@ Librerías:
 - writexl
 
 📁 Estructura del proyecto
+
 ├── titanic_dataset.xlsx
 ├── titanic_dataset_clean.xlsx
 ├── preprocesado.Rmd
 ├── preprocesado.html
 └── README.md
+
 📈 Resultados
 Se obtiene un dataset limpio, coherente y preparado para análisis estadístico o modelos de machine learning.
 
