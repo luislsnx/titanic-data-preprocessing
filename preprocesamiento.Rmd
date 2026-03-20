@@ -1,0 +1,556 @@
+---
+title: "Preprocesamiento de los datos del Titanic"
+author: "Luis Larbec Sánchez"
+date: "2026-03-20"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Librerías necesarias para tablas
+library(knitr)
+library(kableExtra)
+```
+
+# 1. Carga y exploración inicial de los datos
+
+Procedemos a insertar el dataset proporcionado por el enunciado y su posterior análisis del tipo de dato por columna con la función `sapply()`.
+
+Con la función `duplicated()` comprobamos la existencia de pasajeros duplicados. En nuestro caso, se detectaron identificadores repetidos. 
+
+Para corregir la inconsistencia:
+
+- Se mantuvieron los identificadores válidos.
+- Se asignaron nuevos identificadores únicos solo a los registros duplicados.
+
+Tras la corrección, **no quedaron identificadores repetidos**.
+
+```{r cargar_datos}
+# Cargamos librería 'readxl' para el uso de la función read_excel
+library(readxl)
+
+# Almacenamos la información del excel en la variable 'datos'
+datos <- read_excel("titanic_dataset.xlsx")
+
+# Analizamos el tipo de dato de cada columna de nuestra variable 'datos'
+sapply(datos,class)
+
+# Comprobamos la duplicidad del identificador -> 'Passenger_ID'
+dup <- duplicated(datos$PassengerId)
+head(dup, 60)
+
+# En caso de existir algún identificador repetido, reasignamos la ID del segundo
+datos$PassengerId[dup] <- seq(max(datos$PassengerId, na.rm = TRUE) + 1,
+                              by = 1,
+                              length.out = sum(dup))
+
+```
+
+## 2. Tratamiento de variables cuantitativas
+
+En primer lugar, creamos una columna adicional `FamS` (tamaño de la familia), correspondiente a la suma de `SibSp`, `Parch` y el propio pasajero.
+
+```{r análisis variables_cuantitativas}
+# Creación columna nueva, 'FamS'
+datos$FamS <- datos$SibSp + datos$Parch + 1
+# Verificamos la existencia de valores en la columna
+head(datos$FamS)
+```
+La única conversión que tenemos que hacer a tipo numérico de las columnas es `Fare`:
+```{r conversion_Fare}
+# Conversión variable 'Fare' de character a numeric.
+datos$Fare <- as.numeric(datos$Fare)
+```
+
+Para cada columna a analizar, establecemos lo que es un **valor no-erróneo**, y, a partir de ahí, corregimos con `NA` los que no lo sean.
+Procedemos a crear gráficos que nos ayuden a establecer esos valores no-erróneos.
+
+```{r grafico_Age}
+hist(datos$Age,
+     main = "Distribución de la edad",
+     xlab = "Edad",
+     ylab = "Frecuencia")
+```
+
+```{r grafico_SibSp}
+hist(datos$SibSp,
+     main = "Distribución de SibSp",
+     xlab = "Número hermanos o cónyuges a bordo",
+     ylab = "Frecuencia")
+```
+```{r grafico_Parch}
+hist(datos$Parch,
+     main = "Distribución de Parch",
+     xlab = "Número padres/madres o hijos/hijas a bordo",
+     ylab = "Frecuencia")
+```
+```{r grafico_Fare}
+hist(datos$Fare,
+     main = "Distribución de Fare",
+     xlab = "Precio del billete",
+     ylab = "Frecuencia")
+```
+```{r grafico_FamS}
+hist(datos$FamS,
+     main = "Distribución de FamS",
+     xlab = "Número total de familiares a bordo",
+     ylab = "Frecuencia")
+```
+
+Se establecen las siguientes reglas de validación:
+
+- **Age**: valores entre *0 y 100 años*
+- **SibSp, Parch y Fare**: valores **≥ 0**
+- **FamS**: valores **≥ 1** (al menos el propio pasajero)
+
+
+### 2.1. Edad (Age)
+
+```{r analisis_Age}
+# Nos aseguramos de que la edad estará comprendida entre 0 y 100 años
+datos$Age[datos$Age < 0 | datos$Age > 100] <- NA
+
+```
+
+
+### 2.2. Número de hermanos/cónyuges (SibSp)
+
+```{r analisis_SibSp}
+# Nos aseguramos de que la variable será mayor o igual a 0
+datos$SibSp[datos$SibSp < 0] <- NA
+
+```
+
+### 2.3. Número de padres/hijos (Parch)
+
+```{r analisis_Parch}
+# Nos aseguramos de que la variable será mayor o igual a 0
+datos$Parch[datos$Parch < 0] <- NA
+
+```
+
+### 2.4. Tarifa (Fare)
+
+```{r analisis_Fare}
+# Nos aseguramos de que la variable será mayor o igual a 0
+datos$Fare[datos$Fare < 0] <- NA
+
+```
+
+### 2.5. Tamaño de familia (FamS)
+
+```{r analisis_FamS}
+# Nos aseguramos de que la variable será mayor o igual a 1
+datos$FamS[datos$FamS < 1] <- NA
+
+```
+
+
+## 3. Tratamiento de variables categóricas
+
+### 3.1. Supervivencia (Survived)
+
+La variable `Survived` se transforma de tipo numérico a categórico, codificando:
+
+- **1 → Yes**
+- **0 → No**
+
+Cualquier valor distinto se considera inválido y se reemplaza por `NA`.
+
+```{r conversion_Survived}
+# Conversión variable 'Survived' de numeric a character
+datos$Survived <- as.character(datos$Survived)
+
+# Verificamos que la conversión se ha relizado correctamente
+sapply(datos['Survived'], class)
+```
+Una vez realizada la conversión, procedemos a cambiar el 1 por 'Yes' y el 0 por 'No'.
+También escribiremos `NA` si en la celda no aparece nada o aparece un número distinto de 1 o 0.
+
+```{r analisis}
+# Sustituimos el valor de la celda por NA si está vacía o sus números no son 1 o 0
+datos$Survived[datos$Survived == "" | (datos$Survived != "1" & datos$Survived != "0")] <- NA
+
+# Sustituimos los 0s por No y los 1s por Yes
+datos$Survived[datos$Survived == "0"] <- "No"
+datos$Survived[datos$Survived == "1"] <- "Yes"
+
+```
+
+Una vez que tenemos todo codificado, transformamos la variable `Survived` a tipo categórica (el enunciado nos lo pide), de modo que:
+
+```{r conversion2_Survived}
+# Conversión variable 'Survived' de character a categórica con los valores 'No' y 'Yes'
+datos$Survived <- factor(datos$Survived, levels = c("No", "Yes"))
+```
+
+
+### 3.2. Clase del billete (Pclass)
+Establecemos el rango válido para esta columna, que será de 1,2 o 3:
+```{r analisis_Pclass}
+# Evitamos que las variables de esta columna tengan valores fuera del rango permitido
+datos$Pclass[datos$Pclass < 1 | datos$Pclass > 3] <- NA
+```
+
+Para el caso de esta variable, tenemos que transformarla en una variable categórica ordinal
+```{r conversion_Pclass}
+# Convertimos la variable 'Pclass' en un factor ordinal con niveles 1, 2 y 3
+datos$Pclass <- factor(datos$Pclass,
+                       levels = c(1, 2, 3),
+                       ordered = TRUE)
+```
+
+
+### 3.3. Sexo (Sex)
+Utilizamos la expresión `table(datos$Sex)` para observar los diferentes valores a lo largo de toda la tabla que hay en esta columna, esto nos permitirá adaptar el análisis de las diferentes celdas de acuerdo a la clasificación por género.
+
+```{r visualizar_datosSex}
+table(datos$Sex)
+```
+Añadiremos a continuación un chunk para facilitar la clasificación en esta columna.
+
+```{r analisis_Sex}
+# Recodificación valores columna Sex
+datos$Sex[datos$Sex == 'F' | datos$Sex == 'Fem' | datos$Sex == 'female'] <- "Female"
+datos$Sex[datos$Sex == 'M' | datos$Sex == 'male' | datos$Sex == 'Male'] <- "Male"
+```
+
+Convertimos también la variable de tipo *character* a *categórica*.
+
+```{r conversion_Sex}
+# Conversión a variable categórica
+datos$Sex <- factor(datos$Sex,
+                    levels = c("Female","Male"))
+```
+
+### 3.4. Puerta de embarque (Embarked)
+En primer lugar usaremos la expresión `table(datos$Embarked)` para ver los distintos valores existentes en la columna
+
+```{r visualizar_Embarked}
+table(datos$Embarked)
+```
+Procedemos a recodificar los valores:
+
+```{r analisis_Embarked}
+# Recodificación valores columna Embarked
+datos$Embarked[datos$Embarked == "C" | datos$Embarked == "c"] <- "Cherbourg"
+datos$Embarked[datos$Embarked == "Q" | datos$Embarked == "q"] <- "Queenstown"
+datos$Embarked[datos$Embarked == "S" | datos$Embarked == "s"] <- "Southampton"
+```
+
+A continuación, como hemos hecho antes con las variables anteriores, la transformamos a *categórica*.
+
+```{r conversion_Embarked}
+# Conversión a variable categórica
+datos$Embarked <- factor(datos$Embarked,
+                         levels = c("Cherbourg",
+                                    "Queenstown",
+                                    "Southampton"))
+```
+
+## 4. Tratamiento de variables de texto
+Como menciona el enunciado, a las variables `Name`, `Ticket` y `Cabin` (tipo texto) únicamente se les quitarán los espacios al inicio o al final de la cadena de texto, en caso de existir.
+
+Además de añadir `NA` en caso de existir una celda totalmente en blanco.
+
+```{r analisis_tipoTexto}
+# Quitamos posibles espacios al inicio o final de la cadena de texto con la función trimws()
+datos$Name <- trimws(datos$Name)
+datos$Cabin <- trimws(datos$Cabin)
+datos$Ticket <- trimws(datos$Ticket)
+
+# Evitamos que celdas se queden vacías
+datos$Name[datos$Name == ""] <- NA
+datos$Ticket[datos$Ticket == ""] <- NA
+datos$Cabin[datos$Cabin == ""] <- NA
+```
+
+## 5. Detección de valores atípicos (Outliers)
+
+
+### 5.1. Edad (Age)
+En primer lugar vamos a generar un diagrama de cajas (boxplot) para analizar los posibles valores extremos (outliers) en la variable `Age`.
+
+```{r boxplot_Age}
+boxplot(datos$Age,
+        main = "Boxplot de la edad",
+        ylab = "Edad")
+```
+
+Se identifican valores atípicos (*outliers*) mediante diagramas de caja (*boxplot*).
+
+En el caso de `Age`, los valores extremos se sitúan entre **67 y 93 años**.  
+Sin embargo, estos valores son **plausibles**, por lo que **no se eliminan**.
+
+Ayudándonos de la función `stats()` veremos de qué edades se trata concretamente:
+```{r stats_Age}
+# Aplicamos el método del rango intercuartílico para identificar los outliers
+boxplot.stats(datos$Age)$out
+```
+El método del **rango intercuartílico** nos permite identificar que estos outliers van desde los **67 a los 93 años**. No obstante, se trata de **valores plausibles** de los pasajeros del Titanic, por lo que no se considerarán como errores de registro y se mantendrán dentro del conjunto de datos.
+
+### 5.2. Tarifa (Fare)
+A continuación, haremos lo propio con la variable `Fare`.
+
+```{r boxplot_Fare}
+boxplot(datos$Fare,
+        main = "Boxplot del precio del billete",
+        ylab = "Precio billete")
+```
+
+Ahora, de esa cantidad de outliers visibles, observamos que aproximadamente la mayoría se centran entre 90 y 280. Sin embargo, hay un valor bastante superior, lo calcularemos a continuación.
+```{r stats_Fare}
+# Sacamos el listado de todos los outliers
+maximo <- boxplot.stats(datos$Fare)$out
+maximo
+
+# Sacamos el valor máximo de los outliers
+max(maximo)
+```
+El **mayor valor extremo** detectado es **512.3292**, correspondiente al precio máximo de billete registrado en el dataset. Este valor es elevado en comparación con la mayoría de observaciones. A continuación, haremos alguna consulta adicional para determinar si el valor debe ser considerado como erróneo o no:
+
+```{r investigacion_outlierFare}
+# Buscaremos todos los registros donde el ticket valga 512,3292
+as.data.frame(datos[datos$Fare == 512.3292, ])
+```
+Al examinar los registros correspondientes en el dataset, observamos que este valor aparece asociado a cuatro pasajeros, todos ellos de primera clase y con el mismo número de ticket **(PC 17755)**. Esto nos indica que el precio corresponde a un billete compartido de alto coste **(clase 1)**, por lo que se trata de un valor extremo, pero **plausible**. En consecuencia, no se considera un error de registro y se mantiene en el conjunto de datos.
+
+A continuación, calculareos los 10 billetes más caros:
+
+```{r tickets_masCaros}
+# Ordenamos los datos por Fare de mayor a menor
+top_fares <- datos[order(datos$Fare, decreasing = TRUE), ]
+
+# Mostramos los 10 primeros pasajeros
+head(top_fares, 10)
+```
+
+
+
+## 6. Correlaciones entre variables
+
+### 6.1. Matriz de correlación
+Para poder calcular la matriz de correlaciones se necesita que todos sus parámetros sean numéricos. La variable `Survived` es de tipo *factor*, por lo que será necesario crear la variable `Survived_num`, que será una conversión a *numeric* de la variable `Survived`. Me he ayudado de la web de R para la utilización de la función `ifelse` y convertir el 'Yes - No' en 1 y 0, respectivamente:
+https://stat.ethz.ch/R-manual/R-devel/library/base/html/ifelse.html
+
+
+```{r conversion_SurvivedNum}
+# Creación variable numerica de Survived
+datos$Survived_num <- ifelse(datos$Survived == "Yes", 1, 0)
+```
+
+A continuación, almacenaremos todas las columnas de las que queramos hacer la matriz de correlación en la variable `vars`.
+Seguidamente, calcularemos la matriz de correlación de Pearson.
+
+```{r calculo_matrizCorrelacion}
+# Selección variables que nos interesan
+vars <- datos[, c("Age","SibSp","Parch","Fare","FamS","Survived_num")]
+
+# Cálculo de la matriz de correlación
+cor(vars)
+```
+Como se puede observar, obtenemos varios 'NAs' en las celdas, esto ocurre cuando existen registros con valores perdidos. Para evitar este problema, se utilizará el argumento use = "complete.obs", que calcula la correlación empleando únicamente las observaciones completas.
+
+```{r calculo_matrizCorrelacion2}
+# Cálculo de la matriz de correlación con argumento use = "complete.obs"
+mat_cor <- cor(vars, use = "complete.obs")
+mat_cor
+```
+Se observa una **correlación alta** entre `FamS` y:
+
+- `SibSp` (**0.84**)  
+- `Parch` (**0.82**)
+
+Esto es esperable, ya que `FamS` se define como la suma de ambas variables.
+
+La relación entre `Fare` y `Survived_num` es **moderada**, lo que sugiere que  
+**los pasajeros con billetes más caros tenían mayor probabilidad de sobrevivir**.
+
+- También existe una correlación moderada entre `SibSp` y `Parch` (**0.38**). Esto nos indica que la gente que viajaba con hermanos o cónyuges, lo hacían también con otros familiares.
+
+- Otra correlación moderada interesante se da entre las variables `Fare` y `Survived_num`, lo cual era **esperable**, ya que los tickets con mayor precio estaban mejor ubicados, dando una mayor accesibilidad a botes salvavidas.
+
+- En cuanto a la variable `Age`, presenta **correlaciones débiles** con las variables `FamS` y `SibSp`. Esto nos indica que la gente mas mayor tendía a viajar menos con familiares.
+
+- Como valoración de la utilización de la matriz de correlación de Pearson, **la mayoría de correlaciones observadas son bajas o moderadas**, lo cual deja claro que **no existe una dependencia lineal fuerte** entre las variables estudiadas, salvo en las relacionadas con el tamaño familiar (`FamS`, `SibSp` y `Parch`).
+
+### 6.2. Correlación con la variable Survived
+
+A continuación, calcularemos las variables que más correlación tienen con `Survived` (de mayor a menor):
+
+```{r comparacion_correlacionSurvived}
+# Extraemos las correlaciones con Survived_num
+cor_survived <- mat_cor[, "Survived_num"]
+
+# Eliminamos la 'autocorrelación'
+cor_survived <- cor_survived[names(cor_survived) != "Survived_num"]
+
+# Crear un dataframe a partir del vector de correlaciones con Survived
+tabla_cor_survived <- data.frame(
+  # Extrae los nombres de las variables y convierte los valores de correlación a numérico
+  Variable = names(cor_survived),
+  Correlacion = as.numeric(cor_survived)
+)
+# Ordenar el data.frame en función de la correlación
+tabla_cor_survived <- tabla_cor_survived[
+  order(tabla_cor_survived$Correlacion, decreasing = TRUE),
+]
+# Creamos una tabla formateada para mostrar en el informe
+kable(
+  tabla_cor_survived,
+  digits = 3,
+  caption = "Variables ordenadas según su correlación con Survived"
+) |>
+  # Aplicamos estilo visual a la tabla (mediante kableExtra)
+  kable_styling(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover", "condensed")
+  )
+```
+
+## 7. Imputación de valores faltantes
+
+En primer lugar, vamos a calcular las celdas en blanco para cada uno de las columnas:
+
+```{r celdas_blanco}
+colSums(is.na(datos))
+
+# Guardamos las filas donde Age era NA antes de imputar
+filas_na <- which(is.na(datos$Age))
+```
+Como podemos observar, existen varias columnas que contienen el **100% de los datos**. Sin embargo, hay otras con pérdidas de información, como `Age` (**264**) o `Cabin`, donde existen hasta **1014 celdas sin valores**.
+
+La variable `Age` se imputa mediante el algoritmo **KNN (k = 5)**.
+
+Posteriormente, los valores se redondean al entero más cercano para:
+- mantener coherencia con la variable original.
+- facilitar la interpretación.
+
+Este redondeo **minimiza el error medio** respecto al valor real estimado.
+
+```{r imputacion_Age}
+# Importamos la librería VIM, necesaria para utilizar KNN
+library(VIM)
+
+# Creamos una tabla con las variables que nos interesan para la imputación
+vars_knn <- datos[, c("Age", "SibSp", "Parch", "Fare", "FamS")]
+
+# Imputamos la variable Age con k=5
+datos_knn <- kNN(vars_knn, variable = "Age", k = 5)
+
+# Convertir Age a entero (el enunciado lo solicita). Se convierta al entero más cercano para minimizar la desviación media respecto al valor real esperado
+datos_knn$Age <- round(datos_knn$Age)
+
+# Mostramos para la variable creada las columnas 'Age' y 'Age_imp', verificando que se ha imputado la edad para los pasajeros en cuestión
+head(datos_knn[filas_na, c("Age", "Age_imp")])
+```
+
+## 8. Tabla Resumen - Exportación del conjunto de datos limpio
+
+En primer lugar, actualizamos el dataset inicial *datos* con los valores imputados:
+```{r datos_Actualizados}
+# Actualizamos la variable Age en el dataset original con los valores imputados
+datos$Age <- datos_knn$Age
+
+# Mostramos las primeras filas del dataset actualizado
+head(datos)
+```
+
+Las **medidas de tendencia central y dispersión** se calcularán sobre el **dataset final**, una vez realizadas todas las transformaciones, limpieza de valores erróneos y tratamiento de valores perdidos (incluyendo la imputación de la variable `Age`). Esto garantiza que los resultados obtenidos sean coherentes y representativos.
+
+```{r tedencia_Central}
+# Creamos la tabla de tendencia central usando el método aggregate()
+tabla_tendencia_central <- aggregate(
+  
+  # Seleccionamos las variables cuantitativas a analizar, agrupadas por Pclass y Sex
+  cbind(Age, SibSp, Parch, Fare, FamS) ~ Pclass + Sex,
+  
+  # Indicamos el dataset de trabajo
+  data = datos,
+  
+  # Definimos la función que se aplicará a cada variable dentro de cada grupo
+  FUN = function(x) c(
+    media = mean(x, na.rm = TRUE),      # Media aritmética (no robusta)
+    mediana = median(x, na.rm = TRUE)   # Mediana (robusta)
+  )
+)
+# Creamos una tabla kable con dos decimales en cada celda y los estilos especificados a continuación
+kable(
+  tabla_tendencia_central,
+  digits = 2,
+  caption = "Tabla de tendencia central por Pclass y Sex"
+) |>
+   kable_styling(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover", "condensed")
+  )
+```
+
+En la tabla de tendencia central se observan **diferencias claras entre clases y sexo**.
+
+La **edad media** es mayor en *primera clase* y menor en *tercera*, lo que sugiere que los pasajeros de clases altas eran, en general, más mayores.
+
+En cuanto a las variables familiares (`SibSp`, `Parch`, `FamS`), las **medianas son prácticamente cero** en todos los grupos, indicando que la mayoría de pasajeros viajaban solos, aunque la **media del tamaño familiar (`FamS`) es mayor en tercera clase**, lo que refleja la presencia de familias más numerosas en los estratos más bajos.
+
+Por último, la variable `Fare` presenta **valores medios significativamente más altos en primera clase**, evidenciando una **fuerte relación entre la clase del pasajero y el precio del billete**.
+
+A continuación, se procede a calcular las medidas de dispersión de las variables cuantitativas, agrupando por `Pclass` y `Sex`. En concreto, se emplean la **desviación estándar y la desviación absoluta respecto de la mediana (MAD)**:
+
+```{r calculo_Dispersion}
+# Tabla de dispersión
+tabla_dispersion <- aggregate(
+  
+  # Mismas variables cuantitativas que en el caso anterior
+  cbind(Age, SibSp, Parch, Fare, FamS) ~ Pclass + Sex,
+  
+  # Dataset empleado
+  data = datos,
+  
+  # Función de dispersión
+  FUN = function(x) c(
+    sd = sd(x, na.rm = TRUE),    # Desviación estándar (no robusta)
+    mad = mad(x, na.rm = TRUE)   # MAD (robusta)
+  )
+)
+# Creamos una tabla kable con dos decimales en cada celda y los estilos especificados a continuación
+kable(
+  tabla_dispersion,
+  digits = 2,
+  caption = "Tabla de dispersión por Pclass y Sex"
+) |>
+  kable_styling(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover", "condensed")
+  )
+```
+
+En la tabla de dispersión se observa que la variabilidad de la variable `Age` es **moderada** en todos los grupos. No obstante, la diferencia entre la **desviación estándar (sd)** y la **MAD** sugiere la posible presencia de *valores atípicos*.
+
+Las variables familiares (`SibSp`, `Parch`, `FamS`) presentan una **dispersión muy baja**, con valores de MAD iguales a cero en numerosos casos, lo que confirma que la mayoría de los pasajeros viajaban solos.
+
+Por su parte, la variable `Fare` muestra una **alta dispersión**, especialmente en *primera clase*, lo que indica una gran variabilidad en los precios pagados incluso dentro del mismo grupo.
+
+En conjunto, la comparación entre medidas **robustas (MAD)** y **no robustas (sd)** pone de manifiesto la existencia de **distribuciones asimétricas y posibles valores atípicos (outliers)** en el conjunto de datos.
+
+Finalmente, se exportará el dataset generado al archivo '**titanic_dataset_clean.xlsx**'.
+
+```{r datasetFinal_Exportado}
+# Cargamos la librería necesaria
+library(writexl)
+
+# Exportamos el dataset final
+write_xlsx(datos, "titanic_dataset_clean.xlsx")
+```
+
+
+
+
+
+
+
