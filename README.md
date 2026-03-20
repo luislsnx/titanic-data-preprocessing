@@ -40,9 +40,13 @@ Librerías:
 📁 Estructura del proyecto
 
 ├── titanic_dataset.xlsx
+
 ├── titanic_dataset_clean.xlsx
+
 ├── preprocesado.Rmd
+
 ├── preprocesado.html
+
 └── README.md
 
 📈 Resultados
