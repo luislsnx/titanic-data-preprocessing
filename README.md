@@ -43,9 +43,9 @@ Librerías:
 
 ├── titanic_dataset_clean.xlsx
 
-├── preprocesamiento.Rmd
+├── titanic_preprocessing_report.Rmd
 
-├── preprocesamiento.html
+├── titanic_preprocessing_report.html
 
 └── README.md
 
