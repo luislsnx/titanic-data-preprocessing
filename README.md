@@ -5,43 +5,43 @@ Proyecto de preprocesamiento de datos aplicado al dataset del Titanic, desarroll
 📊 Objetivo
 Realizar un proceso completo de limpieza y preparación de datos que permita obtener un dataset consistente y listo para análisis posteriores o modelos predictivos.
 
-🧠 Tareas realizadas
-Limpieza de datos erróneos
+🧠 Tareas realizadas:
+- Limpieza de datos erróneos
 
-Tratamiento de valores perdidos
+- Tratamiento de valores perdidos
 
-Imputación de la variable Age mediante KNN
+- Imputación de la variable Age mediante KNN
 
-Creación de nuevas variables (FamS)
+- Creación de nuevas variables (FamS)
 
-Transformación de variables categóricas
+- Transformación de variables categóricas
 
-Detección y análisis de outliers
+- Detección y análisis de outliers
 
-Análisis de correlaciones
+- Análisis de correlaciones
 
-⚙️ Tecnologías utilizadas
-R
+⚙️ Tecnologías utilizadas:
+- R
 
-R Markdown
+- R Markdown
 
 Librerías:
 
-readxl
+- readxl
 
-VIM
+- VIM
 
-knitr
+- knitr
 
-kableExtra
+- kableExtra
 
-writexl
+- writexl
 
 📁 Estructura del proyecto
 ├── titanic_dataset.xlsx
 ├── titanic_dataset_clean.xlsx
-├── larbec_preprocesado.Rmd
-├── larbec_preprocesado.html
+├── preprocesado.Rmd
+├── preprocesado.html
 └── README.md
 📈 Resultados
 Se obtiene un dataset limpio, coherente y preparado para análisis estadístico o modelos de machine learning.
