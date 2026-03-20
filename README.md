@@ -1,56 +1,39 @@
 # titanic-data-preprocessing
-🚢 Titanic Data Preprocessing (R)
-Proyecto de preprocesamiento de datos aplicado al dataset del Titanic, desarrollado en R como parte de una práctica de análisis de datos.
+# Titanic Data Preprocessing in R
 
-📊 Objetivo
-Realizar un proceso completo de limpieza y preparación de datos que permita obtener un dataset consistente y listo para análisis posteriores o modelos predictivos.
+End-to-end data preprocessing project in R using the Titanic dataset.  
+The project covers data cleaning, missing-value treatment, KNN imputation, outlier analysis, feature engineering and final dataset export.
 
-🧠 Tareas realizadas:
-- Limpieza de datos erróneos
+## Key highlights
+- Cleaned inconsistent and invalid values across numeric, categorical and text variables
+- Imputed missing values in `Age` using KNN
+- Created a final cleaned dataset ready for statistical analysis or machine learning
 
-- Tratamiento de valores perdidos
+## Project files
+- `titanic_preprocessing_report.Rmd`: source report in R Markdown
+- `titanic_preprocessing_report.html`: rendered final report
+- `titanic_dataset_clean.xlsx`: cleaned output dataset
 
-- Imputación de la variable Age mediante KNN
+## Main tasks performed
+- Duplicate ID correction
+- Numeric variable validation
+- Categorical variable recoding
+- Text cleaning with trimming and blank handling
+- Outlier detection and interpretation
+- Correlation analysis
+- KNN imputation for missing ages
 
-- Creación de nuevas variables (FamS)
-
-- Transformación de variables categóricas
-
-- Detección y análisis de outliers
-
-- Análisis de correlaciones
-
-⚙️ Tecnologías utilizadas:
+## Tools used
 - R
-
 - R Markdown
-
-Librerías:
-
 - readxl
-
 - VIM
-
 - knitr
-
 - kableExtra
-
 - writexl
 
-📁 Estructura del proyecto
+## Output
+A cleaned and consistent Titanic dataset prepared for downstream analysis and predictive modeling.
 
-├── titanic_dataset.xlsx
-
-├── titanic_dataset_clean.xlsx
-
-├── titanic_preprocessing_report.Rmd
-
-├── titanic_preprocessing_report.html
-
-└── README.md
-
-📈 Resultados
-Se obtiene un dataset limpio, coherente y preparado para análisis estadístico o modelos de machine learning.
-
-🚀 Autor
+## Author
 Luis Larbec Sánchez
